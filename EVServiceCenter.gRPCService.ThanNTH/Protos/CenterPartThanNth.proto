@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option csharp_namespace = "EVServiceCenter.gRPCService.ThanNTH.Protos";
+
+service CenterPartThanNthGRPC{
+	rpc GetAllAsync(EmptyRequest) returns (CenterPartThanNthList);
+    rpc GetByIdAsync(CenterPartThanNthIdRequest) returns (CenterPartThanNth);
+
+    rpc CreateAsync(CenterPartThanNth) returns (MutationRelay);
+    rpc UpdateAsync(CenterPartThanNth) returns (MutationRelay);
+    rpc DeleteAsync(CenterPartThanNthIdRequest) returns (MutationRelay);
+}
+
+message EmptyRequest{}
+
+message CenterPartThanNth{
+    int32 CenterPartThanNthid = 1;
+    int32 PartId = 2;
+    int32 CenterId = 3;
+    int32 AvailableQuantity = 4;
+    int32 MinimumQuantity = 5;
+    string Description = 6;
+    string PartStatus = 7;
+    bool IsDeleted = 8;
+    string CreateDate = 9;
+    string UpdateDate = 10;
+	
+}
+
+message CenterPartThanNthList{
+	repeated CenterPartThanNth Items = 1;
+}
+
+message CenterPartThanNthIdRequest{
+    int32 CenterPartThanNthid = 1;
+}
+
+message MutationRelay{
+    int32 result = 1;
+}
+
+
