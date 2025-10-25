@@ -1,7 +1,7 @@
 ﻿using EVServiceCenter.gRPCService.ThanNTH.Protos;
 using Grpc.Net.Client;
-using System.Collections.Generic; // Added for List
-using System.Linq; // Added for Linq (Max, etc.)
+using System.Collections.Generic;
+using System.Linq;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.BackgroundColor = ConsoleColor.Black;
