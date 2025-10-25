@@ -63,8 +63,8 @@ public class CenterPartThanNthGRPCService : CenterPartThanNthGRPCBase
 
             var centerPartJson = JsonSerializer.Serialize(request, opt);
 
-            var items = JsonSerializer.Deserialize<EVServiceCenter.Repositories.ThanNTH.Models.CenterPartThanNth>(centerPartJson, opt);
-            var result = await _serviceProviders.CenterPartThanNthService.CreateAsync(items);
+            var item = JsonSerializer.Deserialize<EVServiceCenter.Repositories.ThanNTH.Models.CenterPartThanNth>(centerPartJson, opt);
+            var result = await _serviceProviders.CenterPartThanNthService.CreateAsync(item);
             return new MutationRelay(){ Result = result };
         }
         catch (Exception e)
@@ -72,7 +72,6 @@ public class CenterPartThanNthGRPCService : CenterPartThanNthGRPCBase
 
             throw new Exception(e.Message);
         }
-        //return base.CreateAsync(request, context);
     }
 
     public override async Task<MutationRelay> UpdateAsync(CenterPartThanNth request, ServerCallContext context)
