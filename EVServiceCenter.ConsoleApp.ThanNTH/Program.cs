@@ -1,5 +1,7 @@
 ﻿using EVServiceCenter.gRPCService.ThanNTH.Protos;
 using Grpc.Net.Client;
+using System.Collections.Generic; // Added for List
+using System.Linq; // Added for Linq (Max, etc.)
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.BackgroundColor = ConsoleColor.Black;
@@ -65,6 +67,7 @@ void ShowMenu()
     Console.WriteLine();
 }
 
+// MODIFIED to use the new PrintTable helper
 void GetAllCenterParts()
 {
     Console.Clear();
@@ -84,10 +87,7 @@ void GetAllCenterParts()
         return;
     }
 
-    foreach (var item in response.Items)
-    {
-        Console.WriteLine($"Id: {item.CenterPartThanNthid} - Description: {item.Description} - Part ID: {item.PartId}");
-    }
+    PrintTable(response.Items);
 }
 
 void GetCenterPartById()
@@ -117,7 +117,7 @@ void GetCenterPartById()
         return;
     }
 
-    Console.WriteLine($"Id: {response.CenterPartThanNthid} - Description: {response.Description} - Part ID: {response.PartId}");
+    DrawInfoPanel(response, "ITEM DETAILS");
 }
 void CreateCenterPart()
 {
@@ -149,7 +149,7 @@ void CreateCenterPart()
 
     var progressTask = Task.Run(() => ProgressBar("Creating center part: "));
     var response = grpcClient.CreateAsync(newPart);
-    progressTask.Wait(); 
+    progressTask.Wait();
     Thread.Sleep(500);
 
     Console.WriteLine();
@@ -168,7 +168,7 @@ void UpdateCenterPart()
 {
     Console.Clear();
     DrawHeader();
-    Console.Write("$ Enter ID of the center part to update: ");
+    Console.Write(">> Enter ID of the center part to update: ");
 
     if (!int.TryParse(Console.ReadLine(), out int id))
     {
@@ -188,12 +188,8 @@ void UpdateCenterPart()
         return;
     }
 
-    Console.WriteLine("Current Center Part Details:");
-    Console.WriteLine($"ID: {existingPart.CenterPartThanNthid}");
-    Console.WriteLine($"Description: {existingPart.Description}");
-    Console.WriteLine($"Available Qty: {existingPart.AvailableQuantity}");
-    Console.WriteLine($"Minimum Qty: {existingPart.MinimumQuantity}");
-    Console.WriteLine($"Part Status: {existingPart.PartStatus}");
+    // Use the new info panel helper
+    DrawInfoPanel(existingPart, "REVIEWING PART FOR UPDATE");
     Console.WriteLine();
 
     Console.Write(">> Do you want to update this center part? (y/n): ");
@@ -239,6 +235,7 @@ void UpdateCenterPart()
 }
 
 
+// MODIFIED to use the new DrawInfoPanel helper
 void DeleteCenterPart()
 {
     Console.Clear();
@@ -263,15 +260,10 @@ void DeleteCenterPart()
         return;
     }
 
-    Console.WriteLine("Current Center Part Details:");
-    Console.WriteLine($"ID: {existingPart.CenterPartThanNthid}");
-    Console.WriteLine($"Description: {existingPart.Description}");
-    Console.WriteLine($"Part ID: {existingPart.PartId}");
-    Console.WriteLine($"Center ID: {existingPart.CenterId}");
-    Console.WriteLine($"Available Qty: {existingPart.AvailableQuantity}");
-    Console.WriteLine($"Minimum Qty: {existingPart.MinimumQuantity}");
-    Console.WriteLine($"Status: {existingPart.PartStatus}");
+    // Use the new info panel helper
+    DrawInfoPanel(existingPart, "REVIEWING PART FOR DELETION");
     Console.WriteLine();
+
 
     Console.Write(">> Are you sure you want to delete this record? (y/n): ");
     var confirm = Console.ReadLine()?.Trim().ToLower();
@@ -349,7 +341,7 @@ void DrawHeader()
 ███████╗ ╚████╔╝ ╚██████╗███████╗██║ ╚████║   ██║   ███████╗██║  ██║
 ╚══════╝  ╚═══╝   ╚═════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 ");
-    Console.WriteLine("             CENTER PART MANAGEMENT SYSTEM v3.9");
+    Console.WriteLine("               CENTER PART MANAGEMENT SYSTEM v5.5");
     Console.WriteLine();
     Console.ForegroundColor = ConsoleColor.Green;
 }
@@ -367,4 +359,78 @@ void ProgressBar(string message)
         Thread.Sleep(time / totalBlocks);
     }
     Console.WriteLine("] Done.");
+}
+
+
+
+void PrintTable(IEnumerable<CenterPartThanNth> items)
+{
+    int idWidth = Math.Max("ID".Length, items.Max(i => i.CenterPartThanNthid.ToString().Length)) + 2;
+    int descWidth = Math.Max("Description".Length, items.Max(i => (i.Description ?? "N/A").Length)) + 2;
+    int partIdWidth = Math.Max("Part ID".Length, items.Max(i => i.PartId.ToString().Length)) + 2;
+    int centerIdWidth = Math.Max("Center ID".Length, items.Max(i => i.CenterId.ToString().Length)) + 2;
+    int qtyWidth = Math.Max("Qty".Length, items.Max(i => i.AvailableQuantity.ToString().Length)) + 2;
+    int statusWidth = Math.Max("Status".Length, items.Max(i => (i.PartStatus ?? "N/A").Length)) + 2;
+
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    string topBorder = $"┌{new string('─', idWidth)}┬{new string('─', descWidth)}┬{new string('─', partIdWidth)}┬{new string('─', centerIdWidth)}┬{new string('─', qtyWidth)}┬{new string('─', statusWidth)}┐";
+    string headers = $"│{"ID".PadRight(idWidth)}│{"Description".PadRight(descWidth)}│{"Part ID".PadRight(partIdWidth)}│{"Center ID".PadRight(centerIdWidth)}│{"Qty".PadRight(qtyWidth)}│{"Status".PadRight(statusWidth)}│";
+    string midBorder = $"├{new string('─', idWidth)}┼{new string('─', descWidth)}┼{new string('─', partIdWidth)}┼{new string('─', centerIdWidth)}┼{new string('─', qtyWidth)}┼{new string('─', statusWidth)}┤";
+    string botBorder = $"└{new string('─', idWidth)}┴{new string('─', descWidth)}┴{new string('─', partIdWidth)}┴{new string('─', centerIdWidth)}┴{new string('─', qtyWidth)}┴{new string('─', statusWidth)}┘";
+
+    Console.WriteLine(topBorder);
+    Console.WriteLine(headers);
+    Console.WriteLine(midBorder);
+
+    Console.ForegroundColor = ConsoleColor.White;
+    foreach (var item in items)
+    {
+        string id = item.CenterPartThanNthid.ToString().PadRight(idWidth);
+        string desc = (item.Description ?? "N/A").PadRight(descWidth);
+        string partId = item.PartId.ToString().PadRight(partIdWidth);
+        string centerId = item.CenterId.ToString().PadRight(centerIdWidth);
+        string qty = item.AvailableQuantity.ToString().PadRight(qtyWidth);
+        string status = (item.PartStatus ?? "N/A").PadRight(statusWidth);
+
+        Console.WriteLine($"│{id}│{desc}│{partId}│{centerId}│{qty}│{status}│");
+    }
+
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine(botBorder);
+    Console.ForegroundColor = ConsoleColor.Green;
+}
+
+
+void DrawInfoPanel(CenterPartThanNth part, string title)
+{
+    var lines = new List<string>
+    {
+        $"ID:                {part.CenterPartThanNthid}",
+        $"Description:       {part.Description ?? "N/A"}",
+        $"Part ID:           {part.PartId}",
+        $"Center ID:         {part.CenterId}",
+        $"Available Qty:     {part.AvailableQuantity}",
+        $"Minimum Qty:       {part.MinimumQuantity}",
+        $"Part Status:       {part.PartStatus ?? "N/A"}",
+        $"Created:           {part.CreateDate}",
+        $"Last Updated:      {part.UpdateDate}"
+    };
+
+    int maxWidth = lines.Max(l => l.Length) + 4; 
+    string titleFormatted = $" {title} ";
+    int titlePadding = (maxWidth - titleFormatted.Length) / 2;
+    string titleBar = $"{new string('─', titlePadding)}{titleFormatted}{new string('─', maxWidth - titleFormatted.Length - titlePadding)}";
+
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine($"┌{titleBar}┐");
+
+    Console.ForegroundColor = ConsoleColor.White;
+    foreach (var line in lines)
+    {
+        Console.WriteLine($"│  {line.PadRight(maxWidth - 4)}  │");
+    }
+
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine($"└{new string('─', maxWidth)}┘");
+    Console.ForegroundColor = ConsoleColor.Green; 
 }
