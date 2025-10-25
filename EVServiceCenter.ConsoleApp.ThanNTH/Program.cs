@@ -13,7 +13,7 @@ bool exit = false;
 while (!exit)
 {
     ShowMenu();
-    Console.Write("Select an option (1-6): ");
+    Console.Write(">> Select an option (1-6): ");
     var choice = Console.ReadLine();
 
     switch (choice)
@@ -25,7 +25,7 @@ while (!exit)
             GetCenterPartById();
             break;
         case "3":
-            await CreateCenterPart();
+            CreateCenterPart();
             break;
         case "4":
             UpdateCenterPart();
@@ -34,7 +34,11 @@ while (!exit)
             DeleteCenterPart();
             break;
         case "6":
-            exit = true;
+            if (ConfirmExit())
+            {
+                RunShutdownSequence();
+                exit = true;
+            }
             break;
         default:
             Console.WriteLine("Invalid choice. Try again.");
@@ -43,7 +47,7 @@ while (!exit)
 
     if (!exit)
     {
-        Console.WriteLine("\nPress any key to return to menu...");
+        Console.WriteLine("\n>> Press any key to return to menu...");
         Console.ReadKey();
         Console.Clear();
     }
@@ -65,11 +69,15 @@ void GetAllCenterParts()
 {
     Console.Clear();
     DrawHeader();
-    Console.WriteLine("Fetching all center parts...");
-    Thread.Sleep(3000);
+
+    var progressTask = Task.Run(() => ProgressBar("Fetching all center parts: "));
 
     var response = grpcClient.GetAllAsync(new EmptyRequest());
 
+    progressTask.Wait();
+
+    Thread.Sleep(500);
+    Console.WriteLine();
     if (response.Items.Count == 0)
     {
         Console.WriteLine("No items found.");
@@ -84,18 +92,26 @@ void GetAllCenterParts()
 
 void GetCenterPartById()
 {
-    Console.Write("Enter ID: ");
+    Console.Clear();
+    DrawHeader();
+    Console.Write(">> Enter ID: ");
     if (!int.TryParse(Console.ReadLine(), out int id))
     {
         Console.WriteLine("Invalid ID.");
         return;
     }
 
-    Console.WriteLine("Fetching center part...");
-    Thread.Sleep(3000);
+    var progressTask = Task.Run(() => ProgressBar("Fetching center part: "));
 
     var response = grpcClient.GetByIdAsync(new CenterPartThanNthIdRequest { CenterPartThanNthid = id });
-    if (response == null)
+
+    progressTask.Wait();
+
+    Thread.Sleep(500);
+
+    Console.WriteLine();
+
+    if (response == null || response.CenterPartThanNthid == 0)
     {
         Console.WriteLine("Item not found.");
         return;
@@ -103,38 +119,40 @@ void GetCenterPartById()
 
     Console.WriteLine($"Id: {response.CenterPartThanNthid} - Description: {response.Description} - Part ID: {response.PartId}");
 }
-
-async Task CreateCenterPart()
+void CreateCenterPart()
 {
     Console.Clear();
     DrawHeader();
     var newPart = new CenterPartThanNth();
 
-    Console.Write("Enter Part ID (integer): ");
+    Console.Write(">> Enter Part ID (integer): ");
     newPart.PartId = int.TryParse(Console.ReadLine(), out int partId) ? partId : 0;
 
-    Console.Write("Enter Center ID (integer): ");
+    Console.Write(">> Enter Center ID (integer): ");
     newPart.CenterId = int.TryParse(Console.ReadLine(), out int centerId) ? centerId : 0;
 
-    Console.Write("Enter Available Quantity (integer): ");
+    Console.Write(">> Enter Available Quantity (integer): ");
     newPart.AvailableQuantity = int.TryParse(Console.ReadLine(), out int availableQty) ? availableQty : 0;
 
-    Console.Write("Enter Minimum Quantity (integer): ");
+    Console.Write(">> Enter Minimum Quantity (integer): ");
     newPart.MinimumQuantity = int.TryParse(Console.ReadLine(), out int minQty) ? minQty : 0;
 
-    Console.Write("Enter Description: ");
+    Console.Write(">> Enter Description: ");
     newPart.Description = Console.ReadLine();
 
-    Console.Write("Enter Part Status: ");
+    Console.Write(">> Enter Part Status: ");
     newPart.PartStatus = Console.ReadLine();
 
     newPart.IsDeleted = false;
     newPart.CreateDate = DateTime.UtcNow.ToString("O");
     newPart.UpdateDate = DateTime.UtcNow.ToString("O");
 
-    Console.WriteLine("Creating center part...");
-    Thread.Sleep(3000);
+    var progressTask = Task.Run(() => ProgressBar("Creating center part: "));
     var response = grpcClient.CreateAsync(newPart);
+    progressTask.Wait(); 
+    Thread.Sleep(500);
+
+    Console.WriteLine();
 
     if (response.Result == 1)
     {
@@ -146,11 +164,11 @@ async Task CreateCenterPart()
     }
 }
 
-async Task UpdateCenterPart()
+void UpdateCenterPart()
 {
     Console.Clear();
     DrawHeader();
-    Console.Write("Enter ID of the center part to update: ");
+    Console.Write("$ Enter ID of the center part to update: ");
 
     if (!int.TryParse(Console.ReadLine(), out int id))
     {
@@ -158,9 +176,11 @@ async Task UpdateCenterPart()
         return;
     }
 
-    Console.WriteLine("Fetching existing part...");
-    Thread.Sleep(3000);
+    var progressTask = Task.Run(() => ProgressBar("Fetching existing part: "));
     var existingPart = grpcClient.GetByIdAsync(new CenterPartThanNthIdRequest { CenterPartThanNthid = id });
+    progressTask.Wait();
+    Thread.Sleep(500);
+    Console.WriteLine();
 
     if (existingPart == null || existingPart.CenterPartThanNthid == 0)
     {
@@ -168,33 +188,45 @@ async Task UpdateCenterPart()
         return;
     }
 
-    Console.WriteLine($"Current Description: {existingPart.Description}");
-    Console.WriteLine($"Current Available Quantity: {existingPart.AvailableQuantity}");
-    Console.WriteLine($"Current Minimum Quantity: {existingPart.MinimumQuantity}");
-    Console.WriteLine($"Current Part Status: {existingPart.PartStatus}");
+    Console.WriteLine("Current Center Part Details:");
+    Console.WriteLine($"ID: {existingPart.CenterPartThanNthid}");
+    Console.WriteLine($"Description: {existingPart.Description}");
+    Console.WriteLine($"Available Qty: {existingPart.AvailableQuantity}");
+    Console.WriteLine($"Minimum Qty: {existingPart.MinimumQuantity}");
+    Console.WriteLine($"Part Status: {existingPart.PartStatus}");
     Console.WriteLine();
 
-    Console.Write("Enter new Description (leave blank to keep current): ");
+    Console.Write(">> Do you want to update this center part? (y/n): ");
+    var confirm = Console.ReadLine()?.Trim().ToLower();
+    if (confirm != "y" && confirm != "yes")
+    {
+        Console.WriteLine("Update cancelled.");
+        return;
+    }
+
+    Console.Write(">> Enter new Description (leave blank to keep current): ");
     var desc = Console.ReadLine();
     if (!string.IsNullOrWhiteSpace(desc)) existingPart.Description = desc;
 
-    Console.Write("Enter new Available Quantity (leave blank to keep current): ");
+    Console.Write(">> Enter new Available Quantity (leave blank to keep current): ");
     var qty = Console.ReadLine();
     if (int.TryParse(qty, out int newQty)) existingPart.AvailableQuantity = newQty;
 
-    Console.Write("Enter new Minimum Quantity (leave blank to keep current): ");
+    Console.Write(">> Enter new Minimum Quantity (leave blank to keep current): ");
     var min = Console.ReadLine();
     if (int.TryParse(min, out int newMin)) existingPart.MinimumQuantity = newMin;
 
-    Console.Write("Enter new Part Status (leave blank to keep current): ");
+    Console.Write(">> Enter new Part Status (leave blank to keep current): ");
     var status = Console.ReadLine();
     if (!string.IsNullOrWhiteSpace(status)) existingPart.PartStatus = status;
 
     existingPart.UpdateDate = DateTime.UtcNow.ToString("O");
 
-    Console.WriteLine("\nUpdating center part...");
-    Thread.Sleep(3000);
+    progressTask = Task.Run(() => ProgressBar("Updating center part: "));
     var response = grpcClient.UpdateAsync(existingPart);
+    progressTask.Wait();
+    Thread.Sleep(500);
+    Console.WriteLine();
 
     if (response.Result == 1)
     {
@@ -206,25 +238,24 @@ async Task UpdateCenterPart()
     }
 }
 
+
 void DeleteCenterPart()
 {
     Console.Clear();
     DrawHeader();
 
-    Console.Write("Enter ID of the center part to delete: ");
+    Console.Write(">> Enter ID of the center part to delete: ");
     if (!int.TryParse(Console.ReadLine(), out int id))
     {
         Console.WriteLine("Invalid ID.");
         return;
     }
 
-    Console.WriteLine("Fetching existing part...");
-    Thread.Sleep(3000);
-
-    var existingPart = grpcClient.GetByIdAsync(new CenterPartThanNthIdRequest
-    {
-        CenterPartThanNthid = id
-    });
+    var progressTask = Task.Run(() => ProgressBar("Fetching existing part: "));
+    var existingPart = grpcClient.GetByIdAsync(new CenterPartThanNthIdRequest { CenterPartThanNthid = id });
+    progressTask.Wait();
+    Thread.Sleep(500);
+    Console.WriteLine();
 
     if (existingPart == null || existingPart.CenterPartThanNthid == 0)
     {
@@ -232,7 +263,6 @@ void DeleteCenterPart()
         return;
     }
 
-    Console.WriteLine();
     Console.WriteLine("Current Center Part Details:");
     Console.WriteLine($"ID: {existingPart.CenterPartThanNthid}");
     Console.WriteLine($"Description: {existingPart.Description}");
@@ -243,7 +273,7 @@ void DeleteCenterPart()
     Console.WriteLine($"Status: {existingPart.PartStatus}");
     Console.WriteLine();
 
-    Console.Write("Are you sure you want to delete this record? (y/n): ");
+    Console.Write(">> Are you sure you want to delete this record? (y/n): ");
     var confirm = Console.ReadLine()?.Trim().ToLower();
 
     if (confirm != "y" && confirm != "yes")
@@ -252,13 +282,11 @@ void DeleteCenterPart()
         return;
     }
 
-    Console.WriteLine("Deleting center part...");
-    Thread.Sleep(3000);
-
-    var response = grpcClient.DeleteAsync(new CenterPartThanNthIdRequest
-    {
-        CenterPartThanNthid = id
-    });
+    progressTask = Task.Run(() => ProgressBar("Deleting center part: "));
+    var response = grpcClient.DeleteAsync(new CenterPartThanNthIdRequest { CenterPartThanNthid = id });
+    progressTask.Wait();
+    Thread.Sleep(500);
+    Console.WriteLine();
 
     if (response.Result == 1)
     {
@@ -270,13 +298,73 @@ void DeleteCenterPart()
     }
 }
 
+bool ConfirmExit()
+{
+    Console.Clear();
+    DrawHeader();
+    Console.Write(">> Are you sure you want to exit? (y/n): ");
+    var confirmExit = Console.ReadLine()?.Trim().ToLower();
+    if (confirmExit != "y" && confirmExit != "yes")
+    {
+        Console.WriteLine("Exit cancelled.");
+        Thread.Sleep(500);
+        return false;
+    }
+    return true;
+}
+
+void RunShutdownSequence()
+{
+    Console.Clear();
+    string[] shutdownLogs = new string[]
+    {
+        "Shutting down services...",
+        "Closing database connections...",
+        "Terminating gRPC channels...",
+        "Saving user session...",
+        "Clearing caches...",
+        "Powering off subsystems...",
+        "Goodbye!"
+    };
+
+    Random rand = new Random();
+
+    foreach (var line in shutdownLogs)
+    {
+        Console.WriteLine(line);
+        Thread.Sleep(rand.Next(500, 701));
+    }
+
+    Console.ResetColor();
+}
+
 void DrawHeader()
 {
     Console.ForegroundColor = ConsoleColor.DarkMagenta;
-    Console.WriteLine("  __      _");
-    Console.WriteLine("o'')}____//");
-    Console.WriteLine(" `_/      )     CENTER PART MANAGEMENT SYSTEM");
-    Console.WriteLine(" (_(_/-(_/");
+    Console.WriteLine(@"
+███████╗██╗   ██╗ ██████╗███████╗███╗   ██╗████████╗███████╗██████╗ 
+██╔════╝██║   ██║██╔════╝██╔════╝████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
+█████╗  ██║   ██║██║     █████╗  ██╔██╗ ██║   ██║   █████╗  ██████╔╝
+██╔══╝  ╚██╗ ██╔╝██║     ██╔══╝  ██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
+███████╗ ╚████╔╝ ╚██████╗███████╗██║ ╚████║   ██║   ███████╗██║  ██║
+╚══════╝  ╚═══╝   ╚═════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+");
+    Console.WriteLine("             CENTER PART MANAGEMENT SYSTEM v3.9");
     Console.WriteLine();
     Console.ForegroundColor = ConsoleColor.Green;
+}
+
+void ProgressBar(string message)
+{
+    var rnd = new Random();
+    int time = rnd.Next(1500, 2500);
+
+    Console.Write($"{message} [");
+    int totalBlocks = 20;
+    for (int i = 0; i < totalBlocks; i++)
+    {
+        Console.Write("█");
+        Thread.Sleep(time / totalBlocks);
+    }
+    Console.WriteLine("] Done.");
 }
