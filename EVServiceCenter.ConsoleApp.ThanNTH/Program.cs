@@ -67,7 +67,6 @@ void ShowMenu()
     Console.WriteLine();
 }
 
-// MODIFIED to use the new PrintTable helper
 void GetAllCenterParts()
 {
     Console.Clear();
@@ -188,7 +187,6 @@ void UpdateCenterPart()
         return;
     }
 
-    // Use the new info panel helper
     DrawInfoPanel(existingPart, "REVIEWING PART FOR UPDATE");
     Console.WriteLine();
 
@@ -235,7 +233,6 @@ void UpdateCenterPart()
 }
 
 
-// MODIFIED to use the new DrawInfoPanel helper
 void DeleteCenterPart()
 {
     Console.Clear();
@@ -260,7 +257,6 @@ void DeleteCenterPart()
         return;
     }
 
-    // Use the new info panel helper
     DrawInfoPanel(existingPart, "REVIEWING PART FOR DELETION");
     Console.WriteLine();
 
@@ -302,6 +298,8 @@ bool ConfirmExit()
         Thread.Sleep(500);
         return false;
     }
+    Console.WriteLine("Prepare to exit...");
+    Thread.Sleep(new Random().Next(500, 1000));
     return true;
 }
 
